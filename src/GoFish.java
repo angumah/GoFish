@@ -11,14 +11,18 @@ public class GoFish {
     private static boolean multiplayer;
     private List<Card> deck;
     private final Scanner in;
-    private String[] computerCards;
+    private ArrayList<Card> computerCards;
+    private int size;
+    private Card nextCard;
 
     public GoFish() {
         this.whoseTurn = "P1";
         this.playerOne = new Player();
         this.playerTwo = new Player();
         this.in = new Scanner(System.in);
-        this.computerCards = new String[7];
+        this.size = 7;
+        this.computerCards = new ArrayList<>(size);
+        this.nextCard = null;
         setup();
     }
 
@@ -109,6 +113,7 @@ public class GoFish {
             playerOne.takeCard(deck.remove(0));    // deal 7 cards to the
             playerTwo.takeCard(deck.remove(0));  // player and the computer
         }
+        nextCard = playerTwo.getCardByNeed();
     }
 
     ////////// PRIVATE METHODS /////////////////////////////////////////////////////
@@ -152,12 +157,12 @@ public class GoFish {
             if (playerTwo.hasCard(card)) {
                 System.out.println("Player 2: Yup, here you go!");
                 playerTwo.relinquishCard(playerOne, card);
+                size--;
 
                 return "P1";
             } else {
                 System.out.println("Player 2: Nope, go fish!");
                 playerOne.takeCard(deck.remove(0));
-
                 return "P2";
             }
         } else {
@@ -165,41 +170,78 @@ public class GoFish {
                 System.out.println("Player 1: Yup, here you go!");
                 playerOne.relinquishCard(playerTwo, card);
 
-                return "P2`";
+                return "P2";
             } else {
-                System.out.println("Player 1: Nope, go fish!");
-                playerTwo.takeCard(deck.remove(0));
-
-                rememberCard(card);
-
-                return "P1";
+                if(multiplayer) {
+                    System.out.println("Player 1: Nope, go fish!");
+                    playerTwo.takeCard(deck.remove(0));
+                }
+                else {
+                    System.out.println("Player 1: Nope, go fish!");
+                    playerTwo.takeCard(deck.remove(0));
+                    setNextCard(card,false);
+                }
             }
+            return "P1";
         }
     }
 
-    private void rememberCard(Card card){
+    private void setNextCard(Card remCard, boolean hadCard){
+        size++;
+        computerCards = new ArrayList<>(size);
+        for(int i = 0; i < playerTwo.getHand().size(); i++){
+            Card addCard = playerTwo.getHand().get(i);
+            computerCards.add(addCard);
+        }
 
-    }
+            if(computerCards.contains(remCard)){
+                while(computerCards.contains(remCard)) {
+                    computerCards.remove(remCard);
+                }
+                size = computerCards.size();
+            }
+
+            int index = 0;
+            int frequency = 1;
+
+            for (int i = 0; i < computerCards.size() - 1; i++) {
+                int count = 1;
+
+                for (int j = i + 1; j < computerCards.size(); j++) {
+                    if (computerCards.get(i).getRank().equals(computerCards.get(j).getRank())) {  // tallies cards of the same rank
+                        count++;
+                    }
+                }
+
+                if (count > frequency) {    // updates which card is the most frequently occurring
+                    index = i;
+                    frequency = count;
+                }
+            }
+
+            nextCard = computerCards.get(index);
+        }
+
 
     private Card requestCard(String player) {
-        Card card = null;
+        Card cardRequest = null;
 
         // request a card from your opponent, ensuring that the request is valid.
         // if your hand is empty, we return null to signal the calling method to
         // restart the turn. otherwise, we return the requested card.
 
-        while (card == null) {
+        while (cardRequest == null) {
             if (player.equals("P1")) {
                 if (playerOne.getHand().size() == 0) {
                     playerOne.takeCard(deck.remove(0));
 
                     return null;
-                } else {
+                } else{
                     System.out.println("PLAYER 1: Got any... ");
                     String rank = in.nextLine().trim().toUpperCase();
-                    card = Card.getCardByRank(rank);
+                    cardRequest = Card.getCardByRank(rank);
                 }
-            } else {
+            } else if(player.equals("P2")) {
                 if (playerTwo.getHand().size() == 0) {
                     playerTwo.takeCard(deck.remove(0));
 
@@ -208,17 +250,17 @@ public class GoFish {
                     if(multiplayer) {
                         System.out.println("Player 2: Got any... ");
                         String rank = in.nextLine().trim().toUpperCase();
-                        card = Card.getCardByRank(rank);
+                        cardRequest = Card.getCardByRank(rank);
                     }
                     else {
-                        card = playerTwo.getCardByNeed();
-                        System.out.println("Player 2: Got any... " + card.getRank());
+                        cardRequest = nextCard;
+                        System.out.println("Player 2: Got any... " + cardRequest.getRank());
                     }
                 }
             }
         }
 
-        return card;
+        return cardRequest;
     }
 
     private void showHand(String player) {
